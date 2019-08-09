@@ -2,51 +2,90 @@
 
 class Explorer
 {
-  protected $startDir;
-  protected $currentDir;
-  protected $iterator;
-  protected $breadcrums;
+    protected $path;
+    protected $iterator;
+    protected $breadcrumbs;
 
-  public function __construct($dir)
-  {
-    $this->startDir = $dir;
-    $this->currentDir = $dir;
-    $this->iterator = new DirectoryIterator($dir);
-    $this->breadcrums = new SplStack();
-    $this->breadcrums->push($this->currentDir);
-  }
-
-  public function getCurrentDir()
-  {
-    echo $this->currentDir;
-  }
-
-  public function getFiles()
-  {
-    foreach ($this->iterator as $dir) {
-      echo $dir . PHP_EOL;
+    public function __construct($path)
+    {
+        $this->iterator = new DirectoryIterator($path);
+        $this->breadcrumbs = new SplStack();
+        $this->breadcrumbs->push($path);
     }
-  }
 
-  public function changeDir($dir)
-  {
-    $this->currentDir = "{$this->startDir}/{$dir}";
-    $this->iterator = new DirectoryIterator($this->currentDir);
-    $this->breadcrums->push($this->currentDir);
-  }
+    /**
+     * @return DirectoryIterator
+     */
+    public function getIterator()
+    {
+        return $this->iterator;
+    }
 
-  /**
-   * @return SplStack
-   */
-  public function getBreadcrums()
-  {
-    return $this->breadcrums;
-  }
+    /**
+     *
+     */
+    public function view()
+    {
+        foreach ($this->iterator as $file) {
+            echo $file . PHP_EOL;
+        }
+    }
+
+    public function run($path)
+    {
+        $iteratorArr = [];
+        foreach ($this->iterator as $value) {
+            $iteratorArr[] = (string)$value;
+        }
+        $key = array_search($path, $iteratorArr);
+        if ($key) {
+            $this->iterator->seek($key);
+        }
+        if ($this->iterator->isDir()) {
+            $this->openDir($path);
+        } else if ($this->iterator->isFile()) {
+            $this->openFile($path);
+        } else if ($this->iterator->current() === '..') {
+            $this->goBack();
+        } else {
+            die();
+        }
+    }
+
+    /**
+     * @param $dir
+     */
+
+    protected function openDir($dir)
+    {
+        $newDir = $this->breadcrumbs->top() . '/' . $dir;
+        $this->iterator = new DirectoryIterator($newDir);
+        $this->breadcrumbs->push($newDir);
+    }
+
+    protected function goBack()
+    {
+        $this->breadcrumbs->pop();
+        $this->iterator = new DirectoryIterator($this->breadcrumbs->top());
+    }
+
+    protected function openFile($file)
+    {
+        $file = new SplFileObject($this->breadcrumbs->top() . '/' . $file);
+        echo $file->fpassthru() . PHP_EOL;
+    }
+
+    /**
+     * @return SplStack
+     */
+    public function getBreadcrumbs()
+    {
+        return $this->breadcrumbs;
+    }
 
 }
 
-$explorer = new Explorer('c:/os');
+$explorer = new Explorer('/home/cangreen');
+$explorer->run('gu_php2');
+$explorer->run('.gitignore');
 
-$explorer->changeDir('domains');
-$explorer->getFiles();
-var_dump($explorer->getBreadcrums());
