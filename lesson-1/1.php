@@ -1,5 +1,17 @@
 <?php
 
+class MyDirectoryIterator extends DirectoryIterator
+{
+    public function toArray()
+    {
+        $arr = [];
+        foreach ($this as $value){
+            $arr[] = (string)$value;
+        }
+        return $arr;
+    }
+}
+
 class Explorer
 {
     protected $path;
@@ -8,13 +20,13 @@ class Explorer
 
     public function __construct($path)
     {
-        $this->iterator = new DirectoryIterator($path);
+        $this->iterator = new MyDirectoryIterator($path);
         $this->breadcrumbs = new SplStack();
         $this->breadcrumbs->push($path);
     }
 
     /**
-     * @return DirectoryIterator
+     * @return MyDirectoryIterator
      */
     public function getIterator()
     {
@@ -33,11 +45,8 @@ class Explorer
 
     public function run($path)
     {
-        $iteratorArr = [];
-        foreach ($this->iterator as $value) {
-            $iteratorArr[] = (string)$value;
-        }
-        $key = array_search($path, $iteratorArr);
+
+        $key = array_search($path, $this->iterator->toArray());
         if ($key) {
             $this->iterator->seek($key);
         }
@@ -59,14 +68,14 @@ class Explorer
     protected function openDir($dir)
     {
         $newDir = $this->breadcrumbs->top() . '/' . $dir;
-        $this->iterator = new DirectoryIterator($newDir);
+        $this->iterator = new MyDirectoryIterator($newDir);
         $this->breadcrumbs->push($newDir);
     }
 
     protected function goBack()
     {
         $this->breadcrumbs->pop();
-        $this->iterator = new DirectoryIterator($this->breadcrumbs->top());
+        $this->iterator = new MyDirectoryIterator($this->breadcrumbs->top());
     }
 
     protected function openFile($file)
@@ -87,5 +96,8 @@ class Explorer
 
 $explorer = new Explorer('/home/cangreen');
 $explorer->run('gu_php2');
-$explorer->run('.gitignore');
+//$explorer->run('.gitignore');
+$explorer->run('lesson-3');
+$explorer->run('models');
+$explorer->run('Carts.php');
 
